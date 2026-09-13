@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc -p .",
-    "test": "prettier --check . && tsc -p . && vitest run"
+    "test": "prettier --check . && tsc -p . && vitest run",
+    "build": "esbuild client/main.ts --bundle --format=esm --outfile=dist/client/main.js && cp client/index.html dist/client/index.html"
   },
   "dependencies": {
     "prosemirror-example-setup": "^1.2.3",

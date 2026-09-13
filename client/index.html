@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Letterpress</title>
+    <link rel="stylesheet" href="/site.css" />
+    <style>
+      /* Editor chrome only. Every visual value for the post comes from the site's stylesheet. */
+      .ProseMirror {
+        white-space: pre-wrap;
+        outline: none;
+      }
+      .frontmatter {
+        display: block;
+        width: 100%;
+        margin-bottom: 2.5rem;
+        border: 0;
+        padding: 0.75rem;
+        background: var(--raised);
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.5;
+        resize: vertical;
+      }
+      .editor-bar {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+      }
+      .editor-bar button {
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        color: inherit;
+        font: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="site">
+      <main class="site-main">
+        <div class="editor-bar label">
+          <span id="status">loading</span>
+          <button id="theme" type="button">light / dark</button>
+        </div>
+        <article>
+          <header class="post-header">
+            <h1 class="post-title" id="title"></h1>
+          </header>
+          <textarea id="frontmatter" class="frontmatter" rows="6" spellcheck="false"></textarea>
+          <div id="body"></div>
+        </article>
+      </main>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
