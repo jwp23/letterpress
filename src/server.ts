@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { Config } from './config.ts';
@@ -66,6 +66,7 @@ async function handle(
   res: ServerResponse,
 ): Promise<void> {
   const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+  if (pathname === '/post') return handlePost(opts, req, res);
   if (req.method !== 'GET') return notFound(res);
   if (pathname === '/config') {
     return sendJson(res, { bodyClass: opts.config.bodyClass, lightClass: opts.config.lightClass });
@@ -105,4 +106,37 @@ function sendJson(res: ServerResponse, value: unknown): void {
 function notFound(res: ServerResponse): void {
   res.statusCode = 404;
   res.end();
+}
+
+async function handlePost(
+  opts: ServerOptions,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (req.method === 'GET') {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.end(await readFile(opts.postPath, 'utf8'));
+    return;
+  }
+  if (req.method === 'PUT') {
+    await writeAtomic(opts.postPath, await readBody(req));
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+  res.statusCode = 405;
+  res.end();
+}
+
+async function readBody(req: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** Writes to a sibling temp file, then renames, so a crash never leaves a partial post. */
+async function writeAtomic(file: string, text: string): Promise<void> {
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.letterpress-tmp`);
+  await writeFile(tmp, text, 'utf8');
+  await rename(tmp, file);
 }

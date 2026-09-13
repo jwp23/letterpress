@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
@@ -37,6 +45,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await server.close();
+  chmodSync(path.dirname(postPath), 0o755);
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -77,5 +86,32 @@ describe('static routes', () => {
   test('returns only the classes at /config', async () => {
     const res = await fetch(`${base}/config`);
     expect(await res.json()).toEqual({ bodyClass: 'prose', lightClass: 'light' });
+  });
+});
+
+describe('/post', () => {
+  test('GET returns the file text', async () => {
+    const res = await fetch(`${base}/post`);
+    expect(res.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(await res.text()).toBe('---\ntitle: a\n---\nBody\n');
+  });
+
+  test('PUT writes the file and leaves no temp file', async () => {
+    const res = await fetch(`${base}/post`, { method: 'PUT', body: '---\ntitle: b\n---\nNew\n' });
+    expect(res.status).toBe(204);
+    expect(readFileSync(postPath, 'utf8')).toBe('---\ntitle: b\n---\nNew\n');
+    expect(readdirSync(path.dirname(postPath))).toEqual(['a.md']);
+  });
+
+  test('PUT reports a failed write and leaves the file intact', async () => {
+    chmodSync(path.dirname(postPath), 0o500);
+    const res = await fetch(`${base}/post`, { method: 'PUT', body: 'changed' });
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain('EACCES');
+    expect(readFileSync(postPath, 'utf8')).toBe('---\ntitle: a\n---\nBody\n');
+  });
+
+  test('rejects other methods', async () => {
+    expect((await fetch(`${base}/post`, { method: 'DELETE' })).status).toBe(405);
   });
 });
