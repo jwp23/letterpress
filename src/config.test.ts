@@ -2,13 +2,16 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { findConfigFile } from './config.ts';
+import { findConfigFile, loadConfig } from './config.ts';
+import { LetterpressError } from './errors.ts';
 
 let root: string;
 
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'letterpress-config-'));
   mkdirSync(path.join(root, 'posts'));
+  mkdirSync(path.join(root, 'public'));
+  writeFileSync(path.join(root, 'site.css'), 'body {}');
 });
 
 afterEach(() => {
@@ -24,5 +27,59 @@ describe('findConfigFile', () => {
 
   test('returns undefined when no ancestor has one', () => {
     expect(findConfigFile(path.join(root, 'posts'))).toBeUndefined();
+  });
+});
+
+function writeConfig(values: Record<string, unknown>): string {
+  const file = path.join(root, 'letterpress.json');
+  writeFileSync(file, JSON.stringify(values));
+  return file;
+}
+
+const valid = {
+  stylesheet: 'site.css',
+  staticRoot: 'public',
+  bodyClass: 'prose',
+  lightClass: 'light',
+};
+
+describe('loadConfig', () => {
+  test('resolves paths against the config directory', () => {
+    expect(loadConfig(writeConfig(valid))).toEqual({
+      root,
+      stylesheet: path.join(root, 'site.css'),
+      staticRoot: path.join(root, 'public'),
+      bodyClass: 'prose',
+      lightClass: 'light',
+    });
+  });
+
+  test.each(['stylesheet', 'staticRoot', 'bodyClass', 'lightClass'])(
+    'rejects a missing %s',
+    (key) => {
+      const { [key]: _omitted, ...rest } = valid as Record<string, string>;
+      const file = writeConfig(rest);
+      expect(() => loadConfig(file)).toThrow(new LetterpressError(`${file} is missing "${key}"`));
+    },
+  );
+
+  test('rejects a stylesheet path that does not exist', () => {
+    const file = writeConfig({ ...valid, stylesheet: 'nope.css' });
+    expect(() => loadConfig(file)).toThrow(
+      `stylesheet does not exist: ${path.join(root, 'nope.css')}`,
+    );
+  });
+
+  test('rejects a staticRoot that is not a directory', () => {
+    const file = writeConfig({ ...valid, staticRoot: 'site.css' });
+    expect(() => loadConfig(file)).toThrow(
+      `staticRoot does not exist: ${path.join(root, 'site.css')}`,
+    );
+  });
+
+  test('rejects invalid JSON', () => {
+    const file = path.join(root, 'letterpress.json');
+    writeFileSync(file, '{');
+    expect(() => loadConfig(file)).toThrow(LetterpressError);
   });
 });
