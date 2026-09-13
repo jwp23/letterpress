@@ -22,6 +22,18 @@ async function main(): Promise<void> {
   const title = element<HTMLHeadingElement>('title');
   const yamlField = element<HTMLTextAreaElement>('frontmatter');
   const config = (await (await fetch('/config')).json()) as ClientConfig;
+
+  // Detect system color scheme preference and apply theme (matching site's Base.astro logic)
+  try {
+    const stored = localStorage.getItem('theme');
+    const light =
+      stored === 'light' ||
+      (stored !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches);
+    if (light) document.documentElement.classList.add(config.lightClass);
+  } catch (err) {
+    // localStorage not available in some restricted environments
+  }
+
   const text = await (await fetch('/post')).text();
   const post = splitPost(text);
   const frame = bodyFrame(post.body);
@@ -66,7 +78,12 @@ async function main(): Promise<void> {
 
   yamlField.addEventListener('input', scheduleSave);
   element<HTMLButtonElement>('theme').addEventListener('click', () => {
-    document.documentElement.classList.toggle(config.lightClass);
+    const light = document.documentElement.classList.toggle(config.lightClass);
+    try {
+      localStorage.setItem('theme', light ? 'light' : 'dark');
+    } catch (err) {
+      // localStorage not available in some restricted environments
+    }
   });
   status.textContent = 'saved';
   view.focus();
