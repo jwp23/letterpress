@@ -1,8 +1,10 @@
 import { exampleSetup } from 'prosemirror-example-setup';
 import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { splitPost, titleOf } from '../src/frontmatter.ts';
-import { parseMarkdown, schema } from '../src/markdown.ts';
+import { joinPost, splitPost, titleOf, type Frontmatter } from '../src/frontmatter.ts';
+import { bodyFrame, parseMarkdown, schema, serializeBody } from '../src/markdown.ts';
+
+const SAVE_DELAY_MS = 500;
 
 interface ClientConfig {
   bodyClass: string;
@@ -22,10 +24,19 @@ async function main(): Promise<void> {
   const config = (await (await fetch('/config')).json()) as ClientConfig;
   const text = await (await fetch('/post')).text();
   const post = splitPost(text);
+  const frame = bodyFrame(post.body);
+  const eol: Frontmatter['eol'] = post.frontmatter?.eol ?? '\n';
 
   yamlField.value = post.frontmatter?.yaml ?? '';
   yamlField.hidden = post.frontmatter === null;
   title.textContent = titleOf(post.frontmatter) ?? '';
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const scheduleSave = (): void => {
+    status.textContent = 'editing';
+    clearTimeout(timer);
+    timer = setTimeout(() => void save(), SAVE_DELAY_MS);
+  };
 
   const view = new EditorView(element<HTMLDivElement>('body'), {
     state: EditorState.create({
@@ -33,9 +44,31 @@ async function main(): Promise<void> {
       plugins: exampleSetup({ schema, menuBar: false, floatingMenu: false }),
     }),
     attributes: { class: config.bodyClass },
+    dispatchTransaction(tr) {
+      view.updateState(view.state.apply(tr));
+      if (tr.docChanged) scheduleSave();
+    },
   });
 
-  status.textContent = 'loaded';
+  async function save(): Promise<void> {
+    status.textContent = 'saving';
+    const frontmatter = yamlField.hidden ? null : { yaml: yamlField.value, eol };
+    title.textContent = titleOf(frontmatter) ?? '';
+    const body = joinPost({ frontmatter, body: serializeBody(view.state.doc, frame) });
+    try {
+      const res = await fetch('/post', { method: 'PUT', body });
+      if (!res.ok) throw new Error(await res.text());
+      status.textContent = 'saved';
+    } catch (err) {
+      status.textContent = `error: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  yamlField.addEventListener('input', scheduleSave);
+  element<HTMLButtonElement>('theme').addEventListener('click', () => {
+    document.documentElement.classList.toggle(config.lightClass);
+  });
+  status.textContent = 'saved';
   view.focus();
 }
 
