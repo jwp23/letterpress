@@ -86,6 +86,7 @@ resolve the paths, and confirm they exist.
 - the built editor page,
 - the configured stylesheet,
 - everything under the static root,
+- `GET /config` returning the body and light classes as JSON,
 - `GET /post` returning the file's text,
 - `PUT /post` writing the file.
 
@@ -175,6 +176,7 @@ src/frontmatter.ts     split and join
 src/markdown.ts        ProseMirror schema, parser, serializer config
 src/server.ts          http server and endpoints
 client/                editor page and bundle source
+scripts/smoke.ts       headless render of a post for verification
 docs/adr/              decisions
 ```
 
