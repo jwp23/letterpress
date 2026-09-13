@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { joinPost, splitPost } from './frontmatter.ts';
+import { joinPost, splitPost, titleOf } from './frontmatter.ts';
 
 const withFrontmatter = '---\ntitle: "Hello"\ndate: "2026-09-12"\n---\n\nBody text\n';
 
@@ -43,5 +43,22 @@ describe('joinPost', () => {
     '',
   ])('round-trips %j byte for byte', (text) => {
     expect(joinPost(splitPost(text))).toBe(text);
+  });
+});
+
+describe('titleOf', () => {
+  test('strips double quotes', () => {
+    expect(titleOf({ yaml: 'title: "Hello, world"\n', eol: '\n' })).toBe('Hello, world');
+  });
+  test('strips single quotes', () => {
+    expect(titleOf({ yaml: "title: 'Hi'\n", eol: '\n' })).toBe('Hi');
+  });
+  test('returns an unquoted value as is', () => {
+    expect(titleOf({ yaml: 'date: x\ntitle: Plain title\n', eol: '\n' })).toBe('Plain title');
+  });
+  test('returns null when there is no title line', () => {
+    expect(titleOf({ yaml: 'date: x\n', eol: '\n' })).toBeNull();
+    expect(titleOf({ yaml: 'title:\n', eol: '\n' })).toBeNull();
+    expect(titleOf(null)).toBeNull();
   });
 });
