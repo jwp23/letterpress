@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "letterpress",
+  "project_id": "ab8a1996-fa61-4e77-b645-7a706a0b7d7e"
+}
