@@ -3,10 +3,9 @@ import {
   MarkdownSerializer,
   defaultMarkdownParser,
   defaultMarkdownSerializer,
-  schema,
 } from 'prosemirror-markdown';
 
-export { schema };
+export { schema } from 'prosemirror-markdown';
 
 /** The default serializer with bullet lists written as `- item`. */
 export const serializer = new MarkdownSerializer(
@@ -32,9 +31,19 @@ export interface BodyFrame {
 
 export function bodyFrame(body: string): BodyFrame {
   if (body.trim() === '') return { lead: body, trail: '' };
-  const lead = /^(?:[ \t]*\r?\n)*/.exec(body)![0];
+  const lead = body.slice(0, leadingBlankLinesEnd(body));
   const trail = /(?:\r?\n)*$/.exec(body)![0];
   return { lead, trail: trail === '' ? '\n' : trail };
+}
+
+/** Index just past the whitespace-only lines that open the body. */
+function leadingBlankLinesEnd(body: string): number {
+  let end = 0;
+  for (let nl = body.indexOf('\n'); nl !== -1; nl = body.indexOf('\n', end)) {
+    if (!/^[ \t]*\r?$/.test(body.slice(end, nl))) break;
+    end = nl + 1;
+  }
+  return end;
 }
 
 /** Serializes a document back into the frame of the body it was parsed from. */

@@ -40,10 +40,10 @@ async function main(argv: string[]): Promise<void> {
   });
 }
 
-main(process.argv.slice(2)).catch((err: unknown) => {
-  if (err instanceof LetterpressError) {
-    console.error(err.message);
-    process.exit(1);
-  }
-  throw err;
-});
+try {
+  await main(process.argv.slice(2));
+} catch (err) {
+  if (!(err instanceof LetterpressError)) throw err;
+  console.error(err.message);
+  process.exit(1);
+}
