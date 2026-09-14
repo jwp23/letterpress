@@ -22,6 +22,14 @@ describe('markdown round-trip', () => {
     },
   );
 
+  test('the lead keeps whitespace-only lines and stops at the first content line', () => {
+    expect(bodyFrame(' \t\n\r\n  Text\n\n')).toEqual({ lead: ' \t\n\r\n', trail: '\n\n' });
+  });
+
+  test('the lead excludes leading spaces on the first content line', () => {
+    expect(bodyFrame('\n    code\n').lead).toBe('\n');
+  });
+
   test('a body with no final newline gains one', () => {
     expect(roundTrip('No newline')).toBe('No newline\n');
   });

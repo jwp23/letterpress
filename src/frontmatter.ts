@@ -34,14 +34,24 @@ export function joinPost(post: Post): string {
   return `---${eol}${yaml}---${eol}${post.body}`;
 }
 
-const TITLE_LINE = /^title:[ \t]*(.*?)[ \t]*$/m;
+const TITLE_LINE = /^title:(.*)$/m;
+
+/** Strips spaces and tabs from both ends; a regex here backtracks quadratically. */
+function trimSpacesAndTabs(text: string): string {
+  const blank = (ch: string | undefined): boolean => ch === ' ' || ch === '\t';
+  let start = 0;
+  let end = text.length;
+  while (start < end && blank(text[start])) start++;
+  while (end > start && blank(text[end - 1])) end--;
+  return text.slice(start, end);
+}
 
 /** The title from a frontmatter block, for display only; null when absent. */
 export function titleOf(frontmatter: Frontmatter | null): string | null {
   if (!frontmatter) return null;
   const match = TITLE_LINE.exec(frontmatter.yaml);
-  if (!match || match[1] === '') return null;
-  const raw = match[1];
+  const raw = match ? trimSpacesAndTabs(match[1]) : '';
+  if (raw === '') return null;
   const quoted = /^(["'])(.*)\1$/.exec(raw);
   return quoted ? quoted[2] : raw;
 }

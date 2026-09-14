@@ -56,6 +56,13 @@ describe('titleOf', () => {
   test('returns an unquoted value as is', () => {
     expect(titleOf({ yaml: 'date: x\ntitle: Plain title\n', eol: '\n' })).toBe('Plain title');
   });
+  test('trims spaces and tabs around the value, including before a CRLF', () => {
+    expect(titleOf({ yaml: 'title: \t Spaced \t\r\ndate: x\r\n', eol: '\r\n' })).toBe('Spaced');
+  });
+  test('stays fast on a long run of trailing spaces', () => {
+    const yaml = `title: a${' '.repeat(100_000)}b\n`;
+    expect(titleOf({ yaml, eol: '\n' })).toBe(`a${' '.repeat(100_000)}b`);
+  });
   test('returns null when there is no title line', () => {
     expect(titleOf({ yaml: 'date: x\n', eol: '\n' })).toBeNull();
     expect(titleOf({ yaml: 'title:\n', eol: '\n' })).toBeNull();

@@ -5,6 +5,8 @@ import { joinPost, splitPost, titleOf, type Frontmatter } from '../src/frontmatt
 import { bodyFrame, parseMarkdown, schema, serializeBody } from '../src/markdown.ts';
 
 const SAVE_DELAY_MS = 500;
+/** Heading text for a post without a title, so the heading is never empty. */
+const UNTITLED = 'Untitled';
 
 interface ClientConfig {
   bodyClass: string;
@@ -41,7 +43,7 @@ async function main(): Promise<void> {
 
   yamlField.value = post.frontmatter?.yaml ?? '';
   yamlField.hidden = post.frontmatter === null;
-  title.textContent = titleOf(post.frontmatter) ?? '';
+  title.textContent = titleOf(post.frontmatter) ?? UNTITLED;
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const scheduleSave = (): void => {
@@ -65,7 +67,7 @@ async function main(): Promise<void> {
   async function save(): Promise<void> {
     status.textContent = 'saving';
     const frontmatter = yamlField.hidden ? null : { yaml: yamlField.value, eol };
-    title.textContent = titleOf(frontmatter) ?? '';
+    title.textContent = titleOf(frontmatter) ?? UNTITLED;
     const body = joinPost({ frontmatter, body: serializeBody(view.state.doc, frame) });
     try {
       const res = await fetch('/post', { method: 'PUT', body });
@@ -89,4 +91,4 @@ async function main(): Promise<void> {
   view.focus();
 }
 
-void main();
+await main();

@@ -5,6 +5,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -81,6 +82,15 @@ describe('static routes', () => {
 
   test('refuses paths that escape the static root', async () => {
     expect((await fetch(`${base}/..%2F..%2Fsecret.txt`)).status).toBe(404);
+  });
+
+  test('refuses symlinks under the static root that point outside it', async () => {
+    symlinkSync(path.join(root, 'secret.txt'), path.join(root, 'site', 'public', 'leak.txt'));
+    expect((await fetch(`${base}/leak.txt`)).status).toBe(404);
+  });
+
+  test('returns 404 for a malformed percent-encoding', async () => {
+    expect((await fetch(`${base}/%E0%A4%A`)).status).toBe(404);
   });
 
   test('returns only the classes at /config', async () => {

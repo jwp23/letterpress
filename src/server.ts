@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
-import { readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { readFile, realpath, rename, stat, writeFile } from 'node:fs/promises';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { Config } from './config.ts';
 
@@ -51,13 +51,13 @@ export function startServer(opts: ServerOptions): Promise<RunningServer> {
         reject(new Error('Server did not get a port'));
         return;
       }
-      resolve({
-        port: address.port,
-        close: () =>
-          new Promise<void>((done, fail) => server.close((err) => (err ? fail(err) : done()))),
-      });
+      resolve({ port: address.port, close: () => closeServer(server) });
     });
   });
+}
+
+function closeServer(server: Server): Promise<void> {
+  return new Promise((done, fail) => server.close((err) => (err ? fail(err) : done())));
 }
 
 async function handle(
@@ -74,14 +74,25 @@ async function handle(
   if (pathname === '/') return sendFile(res, path.join(opts.pageDir, 'index.html'));
   if (pathname === '/main.js') return sendFile(res, path.join(opts.pageDir, 'main.js'));
   if (pathname === '/site.css') return sendFile(res, opts.config.stylesheet);
-  const file = resolveStatic(opts.config.staticRoot, pathname);
+  const file = await resolveStatic(opts.config.staticRoot, pathname);
   return file ? sendFile(res, file) : notFound(res);
 }
 
-/** Maps a URL path onto the static root, refusing anything that escapes it. */
-function resolveStatic(root: string, pathname: string): string | null {
-  const file = path.resolve(root, `.${decodeURIComponent(pathname)}`);
-  return file.startsWith(root + path.sep) ? file : null;
+/**
+ * Maps a URL path onto the static root, refusing anything that escapes it. Both paths are
+ * canonicalized first so a symlink under the root cannot point the request outside it.
+ */
+async function resolveStatic(root: string, pathname: string): Promise<string | null> {
+  let realRoot: string;
+  let file: string;
+  try {
+    realRoot = await realpath(root);
+    file = await realpath(path.join(realRoot, decodeURIComponent(pathname)));
+  } catch {
+    // Missing files and malformed percent-encodings both mean there is nothing to serve.
+    return null;
+  }
+  return file.startsWith(realRoot + path.sep) ? file : null;
 }
 
 async function sendFile(res: ServerResponse, file: string): Promise<void> {
