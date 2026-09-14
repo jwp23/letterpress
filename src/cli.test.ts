@@ -62,6 +62,16 @@ describe('isOnPath', () => {
   test('is false for a command missing from the given PATH', () => {
     expect(isOnPath('no-such-tool', dir)).toBe(false);
   });
+
+  test('treats an unset PATH as empty', () => {
+    const original = process.env.PATH;
+    delete process.env.PATH;
+    try {
+      expect(isOnPath('no-such-letterpress-tool')).toBe(false);
+    } finally {
+      process.env.PATH = original;
+    }
+  });
 });
 
 /** Builds a site with a valid letterpress.json and post; returns the post path. */
