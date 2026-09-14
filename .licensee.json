@@ -1,0 +1,27 @@
+{
+  "licenses": {
+    "spdx": [
+      "0BSD",
+      "Apache-2.0",
+      "BlueOak-1.0.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "BSL-1.0",
+      "CC-BY-3.0",
+      "CC0-1.0",
+      "ISC",
+      "MIT",
+      "MPL-2.0",
+      "Python-2.0",
+      "Unicode-3.0",
+      "Unlicense",
+      "Zlib"
+    ],
+    "compound": ["MIT AND CC-BY-3.0"]
+  },
+  "corrections": {
+    "docopt@0.6.2": {
+      "licenses": ["MIT"]
+    }
+  }
+}
