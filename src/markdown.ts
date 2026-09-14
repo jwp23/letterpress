@@ -32,7 +32,7 @@ export interface BodyFrame {
 export function bodyFrame(body: string): BodyFrame {
   if (body.trim() === '') return { lead: body, trail: '' };
   const lead = body.slice(0, leadingBlankLinesEnd(body));
-  const trail = /(?:\r?\n)*$/.exec(body)![0];
+  const trail = body.slice(trailingLineEndingsStart(body));
   return { lead, trail: trail === '' ? '\n' : trail };
 }
 
@@ -44,6 +44,15 @@ function leadingBlankLinesEnd(body: string): number {
     end = nl + 1;
   }
   return end;
+}
+
+/** Index where the run of line endings that closes the body begins. */
+function trailingLineEndingsStart(body: string): number {
+  let start = body.length;
+  while (start > 0 && body[start - 1] === '\n') {
+    start -= body[start - 2] === '\r' ? 2 : 1;
+  }
+  return start;
 }
 
 /** Serializes a document back into the frame of the body it was parsed from. */
