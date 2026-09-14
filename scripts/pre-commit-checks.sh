@@ -11,6 +11,14 @@ set -u
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
+# bd (beads) appends to this file on every issue write, independently of
+# whatever commit is in progress, so nothing else ever stages it and it
+# drifts out of sync with the commits made during the same session. Auto-
+# stage it here so it rides along with whatever commit is already happening.
+if ! git diff --quiet -- .beads/interactions.jsonl 2>/dev/null; then
+    git add .beads/interactions.jsonl
+fi
+
 if command -v betterleaks >/dev/null 2>&1; then
     if ! betterleaks git --pre-commit --staged --redact; then
         echo >&2 "pre-commit: betterleaks detected secrets in staged changes."
