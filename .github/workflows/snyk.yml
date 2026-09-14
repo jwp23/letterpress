@@ -1,0 +1,44 @@
+name: Snyk
+
+# Snyk Code only. Dependency scanning is covered by npm audit and the grype
+# scan in ci.yml. snyk/actions/node is not used: it runs the floating
+# snyk/snyk:node Docker tag, which cannot be pinned. The setup action installs
+# a fixed CLI version instead.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  snyk-code:
+    # Dependabot runs don't receive Actions secrets, so SNYK_TOKEN is empty and
+    # the scan can't authenticate; skip — dependency bumps carry no analyzable code.
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # for github/codeql-action/upload-sarif
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install the Snyk CLI
+        uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+        with:
+          snyk-version: v1.1307.2
+
+      - name: Snyk Code scan
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk code test --sarif-file-output=snyk.sarif
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        with:
+          sarif_file: snyk.sarif
