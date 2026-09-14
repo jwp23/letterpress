@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { browserCommand } from './browser.ts';
 import { findConfigFile, loadConfig } from './config.ts';
 import { LetterpressError } from './errors.ts';
-import { startServer } from './server.ts';
+import { startServer, type RunningServer } from './server.ts';
 
-function isOnPath(cmd: string): boolean {
-  return (process.env.PATH ?? '').split(path.delimiter).some((dir) => {
+/** True when cmd is an executable file in some directory on pathEnv. */
+export function isOnPath(cmd: string, pathEnv = process.env.PATH ?? ''): boolean {
+  return pathEnv.split(path.delimiter).some((dir) => {
     try {
       accessSync(path.join(dir, cmd), constants.X_OK);
       return true;
@@ -18,7 +19,24 @@ function isOnPath(cmd: string): boolean {
   });
 }
 
-async function main(argv: string[]): Promise<void> {
+function openBrowser(url: string): void {
+  const { cmd, args } = browserCommand(url, isOnPath);
+  spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
+}
+
+export interface CliDeps {
+  /** Directory holding the built editor page: index.html and main.js. */
+  pageDir: string;
+  openBrowser: (url: string) => void;
+}
+
+const defaultDeps: CliDeps = {
+  pageDir: fileURLToPath(new URL('../dist/client/', import.meta.url)),
+  openBrowser,
+};
+
+/** Starts the editor server for argv[0] and opens a browser onto it; returns the running server. */
+export async function main(argv: string[], deps: CliDeps = defaultDeps): Promise<RunningServer> {
   const arg = argv[0];
   if (!arg) throw new LetterpressError('Usage: letterpress <post.md>');
   const postPath = path.resolve(arg);
@@ -26,24 +44,27 @@ async function main(argv: string[]): Promise<void> {
   const configPath = findConfigFile(path.dirname(postPath));
   if (!configPath) throw new LetterpressError(`No letterpress.json found above ${postPath}`);
   const config = loadConfig(configPath);
-  const pageDir = fileURLToPath(new URL('../dist/client/', import.meta.url));
+  const { pageDir } = deps;
   if (!existsSync(path.join(pageDir, 'main.js'))) {
     throw new LetterpressError('Editor bundle is missing; run npm run build first');
   }
   const server = await startServer({ config, postPath, pageDir });
   const url = `http://127.0.0.1:${server.port}/`;
-  const { cmd, args } = browserCommand(url, isOnPath);
-  spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
+  deps.openBrowser(url);
   console.log(`Letterpress: ${postPath}\n${url}\nPress Ctrl+C to stop.`);
-  process.on('SIGINT', () => {
-    void server.close().finally(() => process.exit(0));
-  });
+  return server;
 }
 
-try {
-  await main(process.argv.slice(2));
-} catch (err) {
-  if (!(err instanceof LetterpressError)) throw err;
-  console.error(err.message);
-  process.exit(1);
+/** Entry point: runs main, mapping a LetterpressError to stderr and exit code 1. */
+export async function runCli(argv: string[], deps: CliDeps = defaultDeps): Promise<void> {
+  try {
+    const server = await main(argv, deps);
+    process.on('SIGINT', () => {
+      void server.close().finally(() => process.exit(0));
+    });
+  } catch (err) {
+    if (!(err instanceof LetterpressError)) throw err;
+    console.error(err.message);
+    process.exitCode = 1;
+  }
 }
