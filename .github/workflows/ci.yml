@@ -110,6 +110,14 @@ jobs:
 
       - run: npm ci
 
+      # pr-title checks out the PR's BASE revision so a branch can't weaken
+      # the validator that judges it — which means that check never runs a
+      # PR's own changes to the validator. Testing it here against the PR's
+      # real HEAD closes that gap: a regression fails this job instead of
+      # merging untested and turning every subsequent PR's pr-title red.
+      - name: Test the commit-subject validator
+        run: ./tests/check_commit_subject_test.sh
+
       - name: Typecheck
         run: npm run typecheck
 
