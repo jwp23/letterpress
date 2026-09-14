@@ -56,9 +56,9 @@ export async function main(argv: string[], deps: CliDeps = defaultDeps): Promise
 }
 
 /** Entry point: runs main, mapping a LetterpressError to stderr and exit code 1. */
-export async function runCli(argv: string[]): Promise<void> {
+export async function runCli(argv: string[], deps: CliDeps = defaultDeps): Promise<void> {
   try {
-    const server = await main(argv);
+    const server = await main(argv, deps);
     process.on('SIGINT', () => {
       void server.close().finally(() => process.exit(0));
     });

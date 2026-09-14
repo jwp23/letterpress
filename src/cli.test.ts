@@ -132,6 +132,43 @@ describe('main (in-process)', () => {
 });
 
 describe('runCli', () => {
+  test('closes the server and exits 0 on Ctrl+C', async () => {
+    const postPath = buildSite(dir);
+    const pageDir = path.join(dir, 'page');
+    mkdirSync(pageDir);
+    writeFileSync(path.join(pageDir, 'main.js'), 'console.log(1)');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const before = new Set(process.listeners('SIGINT'));
+    const exited = new Promise<number | undefined>((resolve) => {
+      vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+        resolve(code);
+      }) as typeof process.exit);
+    });
+    try {
+      await runCli([postPath], { pageDir, openBrowser: vi.fn() });
+      const added = process.listeners('SIGINT').filter((listener) => !before.has(listener));
+      expect(added).toHaveLength(1);
+      added[0]('SIGINT');
+      expect(await exited).toBe(0);
+      process.removeListener('SIGINT', added[0]);
+    } finally {
+      vi.restoreAllMocks();
+      log.mockRestore();
+    }
+  });
+
+  test('rethrows errors that are not LetterpressErrors', async () => {
+    const postPath = buildSite(dir);
+    const boom = new Error('boom');
+    const deps = {
+      get pageDir(): string {
+        throw boom;
+      },
+      openBrowser: vi.fn(),
+    };
+    await expect(runCli([postPath], deps)).rejects.toBe(boom);
+  });
+
   test('maps a LetterpressError to stderr and exit code 1', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const originalExitCode = process.exitCode;
