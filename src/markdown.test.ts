@@ -30,6 +30,13 @@ describe('markdown round-trip', () => {
     expect(bodyFrame('\n    code\n').lead).toBe('\n');
   });
 
+  test('the trail stays fast on a long run of newlines before content', () => {
+    const body = `x${'\n'.repeat(100_000)}y`;
+    const start = performance.now();
+    expect(bodyFrame(body).trail).toBe('\n');
+    expect(performance.now() - start).toBeLessThan(100);
+  });
+
   test('a body with no final newline gains one', () => {
     expect(roundTrip('No newline')).toBe('No newline\n');
   });
