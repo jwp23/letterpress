@@ -69,5 +69,26 @@ npm test            # prettier check, typecheck, and vitest
 npm run build       # bundles the editor into dist/client
 ```
 
+### Git hooks
+
+```sh
+./scripts/setup-hooks.sh
+```
+
+This points `core.hooksPath` at the repository's committed hooks. Git runs no
+hook until you do this. `pre-commit` runs secrets scanning, formatting,
+typecheck, dependency audit, license check, and the tests. `commit-msg`
+checks that the message is a single Conventional Commits line.
+
+betterleaks is the one tool `npm install` does not provide. The hook warns and
+skips the secrets scan when it is missing; CI runs it on every pull request.
+Install it from https://github.com/betterleaks/betterleaks.
+
+### Continuous integration
+
+Every pull request runs the workflows in `.github/workflows/`. Semgrep,
+SonarQube, and Snyk need the repository secrets `SEMGREP_APP_TOKEN`,
+`SONAR_TOKEN`, and `SNYK_TOKEN`; the other checks need nothing.
+
 Design and decisions live in `docs/designs/letterpress.md`, `docs/adr/`, and
 `docs/decisions/`.
