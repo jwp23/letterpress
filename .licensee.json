@@ -1,4 +1,5 @@
 {
+  "corrections": true,
   "licenses": {
     "spdx": [
       "0BSD",
@@ -16,12 +17,6 @@
       "Unicode-3.0",
       "Unlicense",
       "Zlib"
-    ],
-    "compound": ["MIT AND CC-BY-3.0"]
-  },
-  "corrections": {
-    "docopt@0.6.2": {
-      "licenses": ["MIT"]
-    }
+    ]
   }
 }
