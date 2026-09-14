@@ -6,3 +6,4 @@
 .beads/proxieddb/
 node_modules/
 dist/
+.worktrees/
