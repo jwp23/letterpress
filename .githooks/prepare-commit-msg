@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Strip harness-added commit trailers before the message is validated.
+# Enable with: scripts/setup-hooks.sh
+exec "$(git rev-parse --show-toplevel)/scripts/strip-claude-trailer.sh" "$1"
