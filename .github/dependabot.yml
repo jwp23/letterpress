@@ -7,7 +7,7 @@ updates:
     # Wait before proposing a release so a compromised or yanked version has
     # time to be caught upstream; majors wait longer.
     cooldown:
-      default-days: 3
+      default-days: 7
       semver-major-days: 7
       semver-minor-days: 3
       semver-patch-days: 3
@@ -32,7 +32,7 @@ updates:
     # Wait before proposing a release so a compromised or yanked version has
     # time to be caught upstream. Dependabot supports only default-days here.
     cooldown:
-      default-days: 3
+      default-days: 7
     commit-message:
       prefix: 'chore'
       include: 'scope'
