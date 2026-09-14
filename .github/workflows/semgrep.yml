@@ -26,13 +26,21 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep:1.172.0@sha256:65dcd4408adda7c183a6b4550cb1e9b19f7f627a6fbb7e0559bd466bedc44d7b
-    if: github.actor != 'dependabot[bot]'
+    # Dependabot runs don't receive Actions secrets, so SEMGREP_APP_TOKEN is
+    # empty and the scan can't authenticate. The guard used to live on the
+    # job itself, but a skipped job reports no conclusion, and a required
+    # status check treats that as failing — which permanently blocked every
+    # Dependabot PR from merging once this check became required. Guarding
+    # each step instead keeps the job running (and reporting success) while
+    # doing nothing for dependabot.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: github.actor != 'dependabot[bot]'
         with:
           persist-credentials: false
 
       - name: Run Semgrep
+        if: github.actor != 'dependabot[bot]'
         run: semgrep ci --sarif > semgrep.sarif
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
@@ -41,4 +49,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
         with:
           sarif_file: semgrep.sarif
-        if: always()
+        if: always() && github.actor != 'dependabot[bot]'
