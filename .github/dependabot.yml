@@ -4,6 +4,13 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    # Wait before proposing a release so a compromised or yanked version has
+    # time to be caught upstream; majors wait longer.
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 3
     # CI checks pull request titles against the Conventional Commits convention.
     # Dependabot otherwise infers the style from recent history, which is
     # implicit and can drift; state it instead.
@@ -22,6 +29,13 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    # Wait before proposing a release so a compromised or yanked version has
+    # time to be caught upstream; majors wait longer.
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 3
     commit-message:
       prefix: 'chore'
       include: 'scope'
