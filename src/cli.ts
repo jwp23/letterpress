@@ -13,16 +13,18 @@ export function isOnPath(cmd: string, pathEnv = process.env.PATH ?? ''): boolean
     try {
       accessSync(path.join(dir, cmd), constants.X_OK);
       return true;
-    } catch {
+    } catch /* Stryker disable next-line BlockStatement: an empty catch returns undefined, which some() treats as false; equivalent */ {
       return false;
     }
   });
 }
 
+// Stryker disable all: spawns a real detached browser; reachable only through defaultDeps, which tests replace
 function openBrowser(url: string): void {
   const { cmd, args } = browserCommand(url, isOnPath);
   spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
 }
+// Stryker restore all
 
 export interface CliDeps {
   /** Directory holding the built editor page: index.html and main.js. */
@@ -30,7 +32,9 @@ export interface CliDeps {
   openBrowser: (url: string) => void;
 }
 
+// Stryker disable next-line ObjectLiteral: only reachable by starting the real server and browser from the packaged layout
 const defaultDeps: CliDeps = {
+  // Stryker disable next-line StringLiteral: the bundle location is only observable with a built dist/, which starts the real server and browser
   pageDir: fileURLToPath(new URL('../dist/client/', import.meta.url)),
   openBrowser,
 };
