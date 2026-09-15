@@ -32,6 +32,11 @@ describe('splitPost', () => {
   test('treats an unclosed fence as body only', () => {
     expect(splitPost('---\ntitle: x\n')).toEqual({ frontmatter: null, body: '---\ntitle: x\n' });
   });
+
+  test('ignores a fence that does not start the file', () => {
+    const text = 'Intro\n---\ntitle: x\n---\nBody\n';
+    expect(splitPost(text)).toEqual({ frontmatter: null, body: text });
+  });
 });
 
 describe('joinPost', () => {
@@ -67,5 +72,12 @@ describe('titleOf', () => {
     expect(titleOf({ yaml: 'date: x\n', eol: '\n' })).toBeNull();
     expect(titleOf({ yaml: 'title:\n', eol: '\n' })).toBeNull();
     expect(titleOf(null)).toBeNull();
+  });
+  test('ignores a key that merely ends in title', () => {
+    expect(titleOf({ yaml: 'subtitle: Sub\n', eol: '\n' })).toBeNull();
+  });
+  test('keeps quotes that do not wrap the whole value', () => {
+    expect(titleOf({ yaml: 'title: "Hello" world\n', eol: '\n' })).toBe('"Hello" world');
+    expect(titleOf({ yaml: 'title: Say "hi"\n', eol: '\n' })).toBe('Say "hi"');
   });
 });
