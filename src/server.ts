@@ -115,9 +115,8 @@ async function sendFile(res: ServerResponse, file: string): Promise<void> {
   if (!info.isFile()) return notFound(res);
   res.setHeader('Content-Type', MIME[path.extname(file)] ?? 'application/octet-stream');
   await new Promise<void>((resolve, reject) => {
-    const errorEvent = 'error';
-    // Stryker disable next-line StringLiteral: pipe ends the response on its own, so a never-resolving 'end' is invisible to the client.
-    createReadStream(file).on(errorEvent, reject).on('end', resolve).pipe(res);
+    // Stryker disable next-line StringLiteral: pipe ends the response on its own, so a never-resolving 'end' is invisible to the client; this also covers 'error', which the unreadable-file test guards.
+    createReadStream(file).on('error', reject).on('end', resolve).pipe(res);
   });
 }
 
