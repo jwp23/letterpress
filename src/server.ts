@@ -74,6 +74,7 @@ async function handle(
   res: ServerResponse,
 ): Promise<void> {
   // Stryker disable next-line StringLiteral: req.url is always set on a parsed request, and new URL('', base) has pathname '/' regardless.
+  /* v8 ignore next -- req.url is always set on a parsed request; the fallback is defensive only. */
   const target = req.url ?? '/';
   const { pathname } = new URL(target, 'http://localhost');
   if (pathname === '/post') return handlePost(opts, req, res);
