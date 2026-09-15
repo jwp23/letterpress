@@ -53,9 +53,7 @@ export function startServer(opts: ServerOptions): Promise<RunningServer> {
     server.once('error', reject);
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
       const address = server.address();
-      // Stryker disable ConditionalExpression,LogicalOperator,StringLiteral,BlockStatement,CallExpression: a
-      // TCP server that has just called back from listen always has an object address; this
-      // guard only narrows the type and no reachable state enters it.
+      // Stryker disable ConditionalExpression,LogicalOperator,StringLiteral,BlockStatement,CallExpression: a TCP server that has just called back from listen always has an object address; this guard only narrows the type and no reachable state enters it.
       if (!address || typeof address === 'string') {
         reject(new Error('Server did not get a port'));
         return;
