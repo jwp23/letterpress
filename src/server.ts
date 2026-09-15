@@ -53,13 +53,14 @@ export function startServer(opts: ServerOptions): Promise<RunningServer> {
     server.once('error', reject);
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
       const address = server.address();
-      // Stryker disable all: a TCP server that has just called back from listen always has
-      // an object address; this guard only narrows the type and no reachable state enters it.
+      // Stryker disable ConditionalExpression,LogicalOperator,StringLiteral,BlockStatement,CallExpression: a
+      // TCP server that has just called back from listen always has an object address; this
+      // guard only narrows the type and no reachable state enters it.
       if (!address || typeof address === 'string') {
         reject(new Error('Server did not get a port'));
         return;
       }
-      // Stryker restore all
+      // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral,BlockStatement,CallExpression
       resolve({ port: address.port, close: () => closeServer(server) });
     });
   });
@@ -116,8 +117,9 @@ async function sendFile(res: ServerResponse, file: string): Promise<void> {
   if (!info.isFile()) return notFound(res);
   res.setHeader('Content-Type', MIME[path.extname(file)] ?? 'application/octet-stream');
   await new Promise<void>((resolve, reject) => {
-    // Stryker disable next-line StringLiteral: pipe ends the response on its own, so a never-resolving 'end' is invisible to the client; this also covers 'error', which the unreadable-file test guards.
-    createReadStream(file).on('error', reject).on('end', resolve).pipe(res);
+    const errorEvent = 'error';
+    // Stryker disable next-line StringLiteral: pipe ends the response on its own, so a never-resolving 'end' is invisible to the client.
+    createReadStream(file).on(errorEvent, reject).on('end', resolve).pipe(res);
   });
 }
 
