@@ -34,15 +34,17 @@ export function joinPost(post: Post): string {
   return `---${eol}${yaml}---${eol}${post.body}`;
 }
 
-const TITLE_LINE = /^title:(.*)$/m;
+const TITLE_LINE = /^title:(.*)/m;
 
 /** Strips spaces and tabs from both ends; a regex here backtracks quadratically. */
 function trimSpacesAndTabs(text: string): string {
   const blank = (ch: string | undefined): boolean => ch === ' ' || ch === '\t';
   let start = 0;
   let end = text.length;
-  while (start < end && blank(text[start])) start++;
-  while (end > start && blank(text[end - 1])) end--;
+  // Bound checks are redundant: text[start]/text[end - 1] is undefined past either edge, and
+  // blank(undefined) is false, so both loops already stop there without an explicit guard.
+  while (blank(text[start])) start++;
+  while (blank(text[end - 1])) end--;
   return text.slice(start, end);
 }
 
