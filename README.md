@@ -80,6 +80,8 @@ This points `core.hooksPath` at the repository's committed hooks. Git runs no
 hook until you do this. `pre-commit` runs secrets scanning, formatting,
 typecheck, dependency audit, license check, and the tests. `commit-msg`
 checks that the message is a single Conventional Commits line.
+`pre-push` runs mutation testing (`npm run mutate`) and rejects the push while
+any mutant survives.
 
 betterleaks is the one tool `npm install` does not provide. The hook warns and
 skips the secrets scan when it is missing; CI runs it on every pull request.
