@@ -49,7 +49,11 @@ function leadingBlankLinesEnd(body: string): number {
 /** Index where the run of line endings that closes the body begins. */
 function trailingLineEndingsStart(body: string): number {
   let start = body.length;
-  while (start > 0 && body[start - 1] === '\n') {
+  while (
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: at start === 0, body[-1] is undefined, so the guard is redundant; equivalent
+    start > 0 &&
+    body[start - 1] === '\n'
+  ) {
     start -= body[start - 2] === '\r' ? 2 : 1;
   }
   return start;

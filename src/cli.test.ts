@@ -51,12 +51,35 @@ describe('letterpress CLI (subprocess, exit codes)', () => {
   });
 });
 
+/** Writes an executable named `name` under dir; returns its absolute path. */
+function writeExecutable(name: string): string {
+  const exe = path.join(dir, name);
+  writeFileSync(exe, '#!/bin/sh\n');
+  chmodSync(exe, 0o755);
+  return exe;
+}
+
+/** Runs fn with PATH unset, restoring it afterwards. */
+function withoutPath(fn: () => void): void {
+  const original = process.env.PATH;
+  delete process.env.PATH;
+  try {
+    fn();
+  } finally {
+    process.env.PATH = original;
+  }
+}
+
 describe('isOnPath', () => {
   test('finds an executable in a directory on the given PATH', () => {
-    const exe = path.join(dir, 'my-tool');
-    writeFileSync(exe, '#!/bin/sh\n');
-    chmodSync(exe, 0o755);
+    writeExecutable('my-tool');
     expect(isOnPath('my-tool', dir)).toBe(true);
+  });
+
+  test('finds an executable in a later directory when an earlier one lacks it', () => {
+    writeExecutable('my-tool');
+    const pathEnv = [path.join(dir, 'empty'), dir].join(path.delimiter);
+    expect(isOnPath('my-tool', pathEnv)).toBe(true);
   });
 
   test('is false for a command missing from the given PATH', () => {
@@ -64,13 +87,12 @@ describe('isOnPath', () => {
   });
 
   test('treats an unset PATH as empty', () => {
-    const original = process.env.PATH;
-    delete process.env.PATH;
-    try {
-      expect(isOnPath('no-such-letterpress-tool')).toBe(false);
-    } finally {
-      process.env.PATH = original;
-    }
+    withoutPath(() => expect(isOnPath('no-such-letterpress-tool')).toBe(false));
+  });
+
+  test('treats an unset PATH as one empty entry, which still resolves an absolute command', () => {
+    const exe = writeExecutable('my-tool');
+    withoutPath(() => expect(isOnPath(exe)).toBe(true));
   });
 });
 
@@ -120,7 +142,7 @@ describe('main (in-process)', () => {
     );
   });
 
-  test('starts the server, opens a browser, and logs the URL', async () => {
+  test('starts the server on the post, opens a browser, and logs the URL', async () => {
     const postPath = buildSite(dir);
     const pageDir = path.join(dir, 'page');
     mkdirSync(pageDir);
@@ -134,6 +156,12 @@ describe('main (in-process)', () => {
       const url = `http://127.0.0.1:${server.port}/`;
       expect(openBrowser).toHaveBeenCalledWith(url);
       expect(log).toHaveBeenCalledWith(`Letterpress: ${postPath}\n${url}\nPress Ctrl+C to stop.`);
+      expect(await (await fetch(`${url}post`)).text()).toBe('---\ntitle: a\n---\nBody\n');
+      expect(await (await fetch(`${url}config`)).json()).toEqual({
+        bodyClass: 'prose',
+        lightClass: 'light',
+      });
+      expect(await (await fetch(url)).text()).toBe('<title>Letterpress</title>');
     } finally {
       log.mockRestore();
       await server?.close();
