@@ -67,6 +67,7 @@ All four keys are required.
 ```sh
 npm test            # prettier check, typecheck, and vitest
 npm run build       # bundles the editor into dist/client
+npm run mutate      # mutation testing; fails on any surviving mutant
 ```
 
 ### Git hooks

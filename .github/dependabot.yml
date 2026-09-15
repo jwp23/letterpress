@@ -25,6 +25,14 @@ updates:
         update-types:
           - 'minor'
           - 'patch'
+    # Stryker's vitest runner runs zero tests per mutant under vitest 5 and
+    # reports a silently collapsed score (stryker-js #6210). Hold vitest at 4.x
+    # until a runner release supports vitest 5; see ADR-006.
+    ignore:
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/coverage-v8'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
