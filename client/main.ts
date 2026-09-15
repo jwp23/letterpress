@@ -55,7 +55,12 @@ async function main(): Promise<void> {
   const view = new EditorView(element<HTMLDivElement>('body'), {
     state: EditorState.create({
       doc: parseMarkdown(post.body),
-      plugins: exampleSetup({ schema, menuBar: false, floatingMenu: false }),
+      plugins: exampleSetup({
+        schema,
+        menuBar: false,
+        // Stryker disable next-line BooleanLiteral: never read while menuBar is false
+        floatingMenu: false,
+      }),
     }),
     attributes: { class: config.bodyClass },
     dispatchTransaction(tr) {
