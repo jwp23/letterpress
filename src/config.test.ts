@@ -63,6 +63,14 @@ describe('loadConfig', () => {
     },
   );
 
+  test.each(['stylesheet', 'staticRoot', 'bodyClass', 'lightClass'])(
+    'rejects an empty %s',
+    (key) => {
+      const file = writeConfig({ ...valid, [key]: '' });
+      expect(() => loadConfig(file)).toThrow(new LetterpressError(`${file} is missing "${key}"`));
+    },
+  );
+
   test('rejects a stylesheet path that does not exist', () => {
     const file = writeConfig({ ...valid, stylesheet: 'nope.css' });
     expect(() => loadConfig(file)).toThrow(
@@ -81,5 +89,17 @@ describe('loadConfig', () => {
     const file = path.join(root, 'letterpress.json');
     writeFileSync(file, '{');
     expect(() => loadConfig(file)).toThrow(LetterpressError);
+    expect(() => loadConfig(file)).toThrow(`${file} is not valid JSON:`);
+  });
+
+  test.each([
+    ['string', '"text"'],
+    ['null', 'null'],
+  ])('rejects a top-level %s', (_kind, json) => {
+    const file = path.join(root, 'letterpress.json');
+    writeFileSync(file, json);
+    expect(() => loadConfig(file)).toThrow(
+      new LetterpressError(`${file} must contain a JSON object`),
+    );
   });
 });
