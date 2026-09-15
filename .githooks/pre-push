@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Run mutation testing before each push.
+# Enable with: scripts/setup-hooks.sh
+exec "$(git rev-parse --show-toplevel)/scripts/pre-push-checks.sh"

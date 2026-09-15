@@ -21,4 +21,4 @@ git config core.hooksPath .githooks
 chmod +x .githooks/* scripts/*.sh
 
 echo "Hooks enabled. core.hooksPath is now .githooks"
-echo "pre-commit runs formatting, lint, and tests; commit-msg checks the commit convention."
+echo "pre-commit runs formatting, lint, and tests; commit-msg checks the commit convention; pre-push runs mutation testing."
