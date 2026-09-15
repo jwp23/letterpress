@@ -44,4 +44,8 @@ describe('markdown round-trip', () => {
   test('bullet lists serialize with a dash', () => {
     expect(roundTrip('* star\n* list\n')).toBe('- star\n- list\n');
   });
+
+  test('nested bullet lists keep their indentation', () => {
+    expect(roundTrip('- a\n  - b\n- c\n')).toBe('- a\n  - b\n- c\n');
+  });
 });
