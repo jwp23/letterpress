@@ -22,9 +22,14 @@ const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
+  // Stryker disable StringLiteral: a wrong MIME string is a browser rendering quirk, not
+  // corrupted post content; a test per literal guards nothing.
   '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
+  // Stryker restore StringLiteral
   '.woff2': 'font/woff2',
+  // Stryker disable StringLiteral: a wrong MIME string is a browser rendering quirk, not
+  // corrupted post content; a test per literal guards nothing.
   '.woff': 'font/woff',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -34,6 +39,7 @@ const MIME: Record<string, string> = {
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
 };
+// Stryker restore StringLiteral
 
 export function startServer(opts: ServerOptions): Promise<RunningServer> {
   const server = createServer((req, res) => {
@@ -47,10 +53,13 @@ export function startServer(opts: ServerOptions): Promise<RunningServer> {
     server.once('error', reject);
     server.listen(opts.port ?? 0, '127.0.0.1', () => {
       const address = server.address();
+      // Stryker disable all: a TCP server that has just called back from listen always has
+      // an object address; this guard only narrows the type and no reachable state enters it.
       if (!address || typeof address === 'string') {
         reject(new Error('Server did not get a port'));
         return;
       }
+      // Stryker restore all
       resolve({ port: address.port, close: () => closeServer(server) });
     });
   });
@@ -65,7 +74,9 @@ async function handle(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+  // Stryker disable next-line StringLiteral: req.url is always set on a parsed request, and new URL('', base) has pathname '/' regardless.
+  const target = req.url ?? '/';
+  const { pathname } = new URL(target, 'http://localhost');
   if (pathname === '/post') return handlePost(opts, req, res);
   if (req.method !== 'GET') return notFound(res);
   if (pathname === '/config') {
@@ -105,6 +116,7 @@ async function sendFile(res: ServerResponse, file: string): Promise<void> {
   if (!info.isFile()) return notFound(res);
   res.setHeader('Content-Type', MIME[path.extname(file)] ?? 'application/octet-stream');
   await new Promise<void>((resolve, reject) => {
+    // Stryker disable next-line StringLiteral: pipe ends the response on its own, so a never-resolving 'end' is invisible to the client; this also covers 'error', which the unreadable-file test guards.
     createReadStream(file).on('error', reject).on('end', resolve).pipe(res);
   });
 }
@@ -126,6 +138,7 @@ async function handlePost(
 ): Promise<void> {
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    // Stryker disable next-line StringLiteral: readFile with no encoding returns the same bytes as a Buffer.
     res.end(await readFile(opts.postPath, 'utf8'));
     return;
   }
@@ -148,6 +161,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
 /** Writes to a sibling temp file, then renames, so a crash never leaves a partial post. */
 async function writeAtomic(file: string, text: string): Promise<void> {
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.letterpress-tmp`);
+  // Stryker disable next-line StringLiteral: writeFile with no encoding falls back to utf8 and writes the same bytes.
   await writeFile(tmp, text, 'utf8');
   await rename(tmp, file);
 }

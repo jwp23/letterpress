@@ -12,17 +12,19 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { Config } from './config.ts';
-import { startServer, type RunningServer } from './server.ts';
+import { startServer, type RunningServer, type ServerOptions } from './server.ts';
 
 let root: string;
+let pageDir: string;
 let postPath: string;
+let options: ServerOptions;
 let server: RunningServer;
 let base: string;
 
 beforeEach(async () => {
   root = mkdtempSync(path.join(tmpdir(), 'letterpress-server-'));
   const site = path.join(root, 'site');
-  const pageDir = path.join(root, 'page');
+  pageDir = path.join(root, 'page');
   mkdirSync(path.join(site, 'public', 'fonts'), { recursive: true });
   mkdirSync(path.join(site, 'posts'));
   mkdirSync(pageDir);
@@ -40,7 +42,8 @@ beforeEach(async () => {
     bodyClass: 'prose',
     lightClass: 'light',
   };
-  server = await startServer({ config, postPath, pageDir });
+  options = { config, postPath, pageDir };
+  server = await startServer(options);
   base = `http://127.0.0.1:${server.port}`;
 });
 
@@ -95,7 +98,37 @@ describe('static routes', () => {
 
   test('returns only the classes at /config', async () => {
     const res = await fetch(`${base}/config`);
+    expect(res.headers.get('content-type')).toBe('application/json');
     expect(await res.json()).toEqual({ bodyClass: 'prose', lightClass: 'light' });
+  });
+
+  test('returns 404 for non-GET requests', async () => {
+    expect((await fetch(`${base}/`, { method: 'POST' })).status).toBe(404);
+  });
+
+  test('returns 404 for a directory under the static root', async () => {
+    expect((await fetch(`${base}/fonts`)).status).toBe(404);
+  });
+
+  test('returns 404 when a page asset is missing', async () => {
+    rmSync(path.join(pageDir, 'main.js'));
+    expect((await fetch(`${base}/main.js`)).status).toBe(404);
+  });
+
+  test('serves unknown file types as octet-stream', async () => {
+    writeFileSync(path.join(root, 'site', 'public', 'blob.dat'), 'bytes');
+    const res = await fetch(`${base}/blob.dat`);
+    expect(res.headers.get('content-type')).toBe('application/octet-stream');
+    expect(await res.text()).toBe('bytes');
+  });
+
+  test('reports a file it cannot read', async () => {
+    const locked = path.join(root, 'site', 'public', 'locked.txt');
+    writeFileSync(locked, 'x');
+    chmodSync(locked, 0o000);
+    const res = await fetch(`${base}/locked.txt`);
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain('EACCES');
   });
 });
 
@@ -117,11 +150,22 @@ describe('/post', () => {
     chmodSync(path.dirname(postPath), 0o500);
     const res = await fetch(`${base}/post`, { method: 'PUT', body: 'changed' });
     expect(res.status).toBe(500);
+    expect(res.headers.get('content-type')).toBe('text/plain; charset=utf-8');
     expect(await res.text()).toContain('EACCES');
     expect(readFileSync(postPath, 'utf8')).toBe('---\ntitle: a\n---\nBody\n');
   });
 
   test('rejects other methods', async () => {
     expect((await fetch(`${base}/post`, { method: 'DELETE' })).status).toBe(405);
+  });
+});
+
+describe('startServer', () => {
+  test('rejects when the port is already in use', async () => {
+    await expect(startServer({ ...options, port: server.port })).rejects.toThrow('EADDRINUSE');
+  });
+
+  test('listens on loopback only', async () => {
+    await expect(fetch(`http://[::1]:${server.port}/`)).rejects.toThrow();
   });
 });
