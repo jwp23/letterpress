@@ -35,6 +35,7 @@ const STRING_KEYS = ['stylesheet', 'staticRoot', 'bodyClass', 'lightClass'] as c
 export function loadConfig(configPath: string): Config {
   let raw: unknown;
   try {
+    // Stryker disable next-line StringLiteral: with no encoding readFileSync returns a Buffer, which JSON.parse decodes as the same UTF-8 text
     raw = JSON.parse(readFileSync(configPath, 'utf8'));
   } catch (err) {
     throw new LetterpressError(`${configPath} is not valid JSON: ${(err as Error).message}`);
