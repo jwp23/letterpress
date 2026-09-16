@@ -40,10 +40,17 @@ jobs:
         if: github.actor != 'dependabot[bot]'
         run: ./node_modules/.bin/vitest run --coverage --coverage.reporter=lcov
 
+      - name: Read package version
+        if: github.actor != 'dependabot[bot]'
+        id: package-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       # Pinned by version tag rather than SHA: a 40-hex SHA next to "sonarqube"
       # trips Semgrep's generic SonarQube-token detector. Dependabot tracks the tag.
       - name: SonarQube Scan
         if: github.actor != 'dependabot[bot]'
         uses: SonarSource/sonarqube-scan-action@v8
+        with:
+          args: -Dsonar.projectVersion=${{ steps.package-version.outputs.version }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
